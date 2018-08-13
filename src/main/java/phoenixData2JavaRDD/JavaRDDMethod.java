@@ -11,12 +11,14 @@ import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.api.java.function.Function;
 import org.apache.spark.api.java.function.VoidFunction;
 import org.apache.spark.streaming.Durations;
 import org.apache.spark.streaming.api.java.JavaDStream;
 import org.apache.spark.streaming.api.java.JavaInputDStream;
 import org.apache.spark.streaming.api.java.JavaPairDStream;
 import org.apache.spark.streaming.api.java.JavaStreamingContext;
+
 import scala.Tuple2;
 
 public class JavaRDDMethod
@@ -28,6 +30,23 @@ public class JavaRDDMethod
 //    	读入：1.从txt文件读成JavaRDD;
 //		     2.从List<String>读成JavaRDD
         JavaRDD<String> dataRDD = Data2RDDMethod(sc);
+        
+        JavaRDD<String> dataRDD2 = dataRDD.filter(new Function<String,Boolean>(){
+
+			@Override
+			public Boolean call(String v1) throws Exception
+			{
+				return v1.indexOf("f6") != -1;
+			}
+        });
+        dataRDD2.foreach(new VoidFunction<String>()
+        		{
+					@Override
+					public void call(String t) throws Exception
+					{
+						System.out.println(t+"~~~~~~~~~~~~~~");
+					}
+        		});
         
         JavaRDD<String> wordRDD = dataRDD2WordRDDMethod(dataRDD);
         
