@@ -29,25 +29,9 @@ public class JavaRDDMethod
         JavaSparkContext sc = sparkConf();
 //    	读入：1.从txt文件读成JavaRDD;
 //		     2.从List<String>读成JavaRDD
-        JavaRDD<String> dataRDD = Data2RDDMethod(sc);
-        
-        JavaRDD<String> dataRDD2 = dataRDD.filter(new Function<String,Boolean>(){
-
-			@Override
-			public Boolean call(String v1) throws Exception
-			{
-				return v1.indexOf("f6") != -1;
-			}
-        });
-        dataRDD2.foreach(new VoidFunction<String>()
-        		{
-					@Override
-					public void call(String t) throws Exception
-					{
-						System.out.println(t+"~~~~~~~~~~~~~~");
-					}
-        		});
-        
+        List<String> phoenixData = dataFromPhoenix();
+        JavaRDD<String> dataRDD = Data2RDDMethod(sc, phoenixData);
+     
         JavaRDD<String> wordRDD = dataRDD2WordRDDMethod(dataRDD);
         
         JavaPairRDD<String, Integer> wordCountRDD =  wordCountRDDMethod(wordRDD);
@@ -84,10 +68,10 @@ public class JavaRDDMethod
 	}
 //	读入：1.从txt文件读成JavaRDD;
 //		 2.从List<String>读成JavaRDD
-	public static JavaRDD<String> Data2RDDMethod(JavaSparkContext sc)
+	public static JavaRDD<String> Data2RDDMethod(JavaSparkContext sc, List<String> phoenixData)
 	{
 //      JavaRDD<String> fileRDD = sc.textFile("F:\\inputTest.txt");
-		List<String> phoenixData = dataFromPhoenix();
+		
 		 JavaRDD<String> DataRDD = sc.parallelize(phoenixData);
 		return DataRDD;
 	}

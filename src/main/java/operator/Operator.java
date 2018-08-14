@@ -28,12 +28,22 @@ public class Operator
 		System.setProperty("hadoop.home.dir", "F:\\upload_jdk\\hadoop-2.7.6\\hadoop-2.7.6");
         JavaSparkContext sc = sparkConf();
         JavaRDD<String> dataRDD = Data2RDDMethod(sc);
-        
-        String[] selectValues = new String[]{"a3","b2"};
-        String selectField = "G";
-        String[] allField = new String[]{"A","B","C","D","E","F","G"};
+        Map<String, String> filterFieldsAndValues = new HashMap<String, String>();
+        filterFieldsAndValues.put("C", "c3");
+        filterFieldsAndValues.put("G", "g7");
+        List<String> selectFields = new ArrayList<String>();
+        selectFields.add("C");
+        selectFields.add("G");
+        List<String> allField = new ArrayList<String>();
+        allField.add("A");
+        allField.add("B");
+        allField.add("C");
+        allField.add("D");
+        allField.add("E");
+        allField.add("F");
+        allField.add("G");
         //过滤算子
-        JavaRDD<String> filterResult = filterMethod(selectValues, dataRDD, true);
+        JavaRDD<String> filterResult = filterMethod(filterFieldsAndValues, allField, dataRDD, false);
         filterResult.foreach(new VoidFunction<String>()
 		{
 			@Override
@@ -43,31 +53,55 @@ public class Operator
 			}
 		});
         //统计算子
-        Map<String, Long> counterResult = CounterMethod(selectField, allField, dataRDD);
+        Map<String, Long> counterResult = CounterMethod(selectFields, allField, dataRDD);
         Set<Map.Entry<String, Long>> entrySet = counterResult.entrySet();
         for(Map.Entry<String, Long> en : entrySet)
         {
         	System.out.println("统计算子： "+en.getKey()+" : "+en.getValue());
         }
         //抽样算子
-        List<String> sampleResult = sampleMethod(selectField, allField, dataRDD);
+        Set<String> sampleResult = sampleMethod(selectFields, allField, dataRDD);
         for(String res : sampleResult)
         {
         	System.out.println("抽样算子： "+res);
         }
 	}
-	public static JavaRDD<String> filterMethod(String[] selectValues, JavaRDD<String> dataRDD, boolean b)
+	public static JavaRDD<String> filterMethod(Map<String, String> filterFieldsAndValues, List<String> allField, JavaRDD<String> dataRDD, boolean b)
 	{
+		List<String> filterFields = new ArrayList<String>(); 
+		List<String> filterValues = new ArrayList<String>(); 
+		List<Integer> indexList = new ArrayList<Integer>(); 
+		Set<Map.Entry<String, String>> entrySet = filterFieldsAndValues.entrySet();
+		for(Map.Entry<String, String> entry : entrySet)
+		{
+			filterFields.add(entry.getKey());
+			filterValues.add(entry.getValue());
+		}
+		for(String field : filterFields)
+		{
+			int tmp = allField.indexOf(field);
+			indexList.add(tmp);
+		}
 		JavaRDD<String> dataRDD2 = dataRDD;
 		if(b == false)
 		{
-			for(String s : selectValues)
+			for(int i=0; i<filterValues.size(); i++)
 			{
+				int idx1 = indexList.get(i);
+				int idx2 = i;
 				dataRDD2 = dataRDD2.filter(new Function<String,Boolean>(){
 					@Override
 					public Boolean call(String v1) throws Exception
 					{
-							return v1.indexOf(s) != -1;
+						String[] str = v1.split(",");
+						if(str[idx1].equals(filterValues.get(idx2)))
+						{
+							return true;
+						}
+						else
+						{
+							return false;
+						}
 					}
 		        });
 			}
@@ -79,9 +113,18 @@ public class Operator
 				public Boolean call(String v1) throws Exception
 				{
 					boolean bb = true;
-					for(String s : selectValues)
+					boolean tmp = false;
+					String[] str = v1.split(",");
+					for(int i=0; i<filterValues.size(); i++)
 					{
-						boolean tmp = v1.indexOf(s)!=-1;
+						if(str[indexList.get(i)].equals(filterValues.get(i)))
+						{
+							tmp = true;
+						}
+						else
+						{
+							tmp = false;
+						}
 						bb = tmp==bb;
 						if(bb == false)
 						{
@@ -94,71 +137,91 @@ public class Operator
 		}
 		return dataRDD2;
 	}
-	public static Map<String, Long> CounterMethod(String selectField, String[] allField, JavaRDD<String> dataRDD)
+	public static Map<String, Long> CounterMethod(List<String> selectFields, List<String> allField, JavaRDD<String> dataRDD)
 	{
-		int index = -1;
-		for(int i=0; i<allField.length; i++)
+		Map<String, Long> map = new HashMap<String, Long>();
+		List<Integer> indexList = new ArrayList<Integer>(); 
+		for(String field : selectFields)
 		{
-			if(allField[i].equals(selectField))
-			{
-				index = i;
-			}
+			int tmp = allField.indexOf(field);
+			indexList.add(tmp);
 		}
-		if(index == -1)
+		List<String> list = dataRDD.collect();
+		for(String s : list)
 		{
-			return null;
-		}
-		else
-		{
-			Set<String> set = new HashSet<String>();
-			Map<String, Long> map = new HashMap<String, Long>();
-			List<String> list = dataRDD.collect();
-			for(String tmp : list)
+			int index = 0;
+			String resk = "";
+			String[] str = s.split(",");
+			Map<String, String> filterMap = new HashMap<String, String>();
+			for(int i : indexList)
 			{
-				String[] str = tmp.split(",");
-				set.add(str[index]);
+				String k = selectFields.get(index++);
+				String v = str[i];
+				resk += k+":"+v+" ";
+				filterMap.put(k, v);
 			}
-			for(String s: set)
-			{
-				String[] ss = s.split(",");
-				JavaRDD<String> filterResult = filterMethod(ss, dataRDD, false);
-				map.put(s, filterResult.count());
-			}
-			return map;
+			map.put(resk, filterMethod(filterMap, allField, dataRDD, false).count());
 		}
+		return map;
 	}
-	public static List<String> sampleMethod(String selectField, String[] allField, JavaRDD<String> dataRDD)
+	public static Set<String> sampleMethod(List<String> selectFields, List<String> allField, JavaRDD<String> dataRDD)
 	{
-		int index = -1;
-		for(int i=0; i<allField.length; i++)
+		Set<String> resSet = new HashSet<String>();
+		List<Integer> indexList = new ArrayList<Integer>(); 
+		for(String field : selectFields)
 		{
-			if(allField[i].equals(selectField))
-			{
-				index = i;
-			}
+			int tmp = allField.indexOf(field);
+			indexList.add(tmp);
 		}
-		if(index == -1)
+		List<String> list = dataRDD.collect();
+		for(String s : list)
 		{
-			return null;
-		}
-		else
-		{
-			Set<String> set = new HashSet<String>();
-			List<String> list = dataRDD.collect();
-			List<String> list2 = new ArrayList<String>();
-			for(String tmp : list)
+			int index = 0;
+			String resk = "";
+			String[] str = s.split(",");
+			Map<String, String> filterMap = new HashMap<String, String>();
+			for(int i : indexList)
 			{
-				String[] str = tmp.split(",");
-				set.add(str[index]);
+				String k = selectFields.get(index++);
+				String v = str[i];
+				filterMap.put(k, v);
 			}
-			for(String s: set)
-			{
-				String[] ss = s.split(",");
-				JavaRDD<String> filterResult = filterMethod(ss, dataRDD, false);
-				list2.add(filterResult.first());
-			}
-			return list2;
+			resSet.add(filterMethod(filterMap, allField, dataRDD, false).first());
 		}
+		return resSet;
+		
+		
+		
+//		int index = -1;
+//		for(int i=0; i<allField.length; i++)
+//		{
+//			if(allField[i].equals(selectField))
+//			{
+//				index = i;
+//			}
+//		}
+//		if(index == -1)
+//		{
+//			return null;
+//		}
+//		else
+//		{
+//			Set<String> set = new HashSet<String>();
+//			List<String> list = dataRDD.collect();
+//			List<String> list2 = new ArrayList<String>();
+//			for(String tmp : list)
+//			{
+//				String[] str = tmp.split(",");
+//				set.add(str[index]);
+//			}
+//			for(String s: set)
+//			{
+//				String[] ss = s.split(",");
+//				JavaRDD<String> filterResult = filterMethod(ss, dataRDD, false);
+//				list2.add(filterResult.first());
+//			}
+//			return list2;
+//		}
 	}
 	
 	
