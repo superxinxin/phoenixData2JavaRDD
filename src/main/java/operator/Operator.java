@@ -14,12 +14,16 @@ import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.Function;
+import org.apache.spark.api.java.function.Function2;
+import org.apache.spark.api.java.function.PairFunction;
 import org.apache.spark.api.java.function.VoidFunction;
 import org.apache.spark.streaming.Durations;
 import org.apache.spark.streaming.api.java.JavaDStream;
 import org.apache.spark.streaming.api.java.JavaInputDStream;
 import org.apache.spark.streaming.api.java.JavaPairDStream;
 import org.apache.spark.streaming.api.java.JavaStreamingContext;
+
+import scala.Tuple2;
 
 public class Operator
 {
@@ -32,8 +36,8 @@ public class Operator
         filterFieldsAndValues.put("C", "c3");
         filterFieldsAndValues.put("G", "g7");
         List<String> selectFields = new ArrayList<String>();
-        selectFields.add("C");
-        selectFields.add("G");
+        selectFields.add("B");
+        selectFields.add("D");
         List<String> allField = new ArrayList<String>();
         allField.add("A");
         allField.add("B");
@@ -53,9 +57,9 @@ public class Operator
 			}
 		});
         //统计算子
-        Map<String, Long> counterResult = CounterMethod(selectFields, allField, dataRDD);
-        Set<Map.Entry<String, Long>> entrySet = counterResult.entrySet();
-        for(Map.Entry<String, Long> en : entrySet)
+        Map<String, Integer> counterResult = CounterMethod(selectFields, allField, dataRDD);
+        Set<Map.Entry<String, Integer>> entrySet = counterResult.entrySet();
+        for(Map.Entry<String, Integer> en : entrySet)
         {
         	System.out.println("统计算子： "+en.getKey()+" : "+en.getValue());
         }
@@ -137,32 +141,64 @@ public class Operator
 		}
 		return dataRDD2;
 	}
-	public static Map<String, Long> CounterMethod(List<String> selectFields, List<String> allField, JavaRDD<String> dataRDD)
+	public static Map<String, Integer> CounterMethod(List<String> selectFields, List<String> allField, JavaRDD<String> dataRDD)
 	{
-		Map<String, Long> map = new HashMap<String, Long>();
-		List<Integer> indexList = new ArrayList<Integer>(); 
-		for(String field : selectFields)
-		{
-			int tmp = allField.indexOf(field);
-			indexList.add(tmp);
-		}
-		List<String> list = dataRDD.collect();
-		for(String s : list)
-		{
-			int index = 0;
-			String resk = "";
-			String[] str = s.split(",");
-			Map<String, String> filterMap = new HashMap<String, String>();
-			for(int i : indexList)
-			{
-				String k = selectFields.get(index++);
-				String v = str[i];
-				resk += k+":"+v+" ";
-				filterMap.put(k, v);
-			}
-			map.put(resk, filterMethod(filterMap, allField, dataRDD, false).count());
-		}
-		return map;
+//		JavaPairRDD<String,Integer> ddd = 
+//				dataRDD.mapToPair(x -> new Tuple2<String, Integer>(x, 1)).reduceByKey(((x, y) -> x + y));
+		JavaPairRDD<String,Integer> ddd = dataRDD.mapToPair(new PairFunction<String,String,Integer>()
+				{
+					@Override
+					public Tuple2<String, Integer> call(String t) throws Exception
+					{
+						List<Integer> indexList = new ArrayList<Integer>(); 
+						for(String field : selectFields)
+						{
+							int tmp = allField.indexOf(field);
+							indexList.add(tmp);
+						}
+						StringBuffer resk = new StringBuffer("");
+						String[] str = t.split(",");
+						for(int i : indexList)
+						{
+							String k = allField.get(i);
+							String v = str[i];
+							resk.append(k);
+							resk.append(":");
+							resk.append(v);
+							resk.append(" ");
+						}
+						Tuple2<String, Integer> tup = new Tuple2<String,Integer>(resk.toString(),new Integer(1));
+						return tup;
+					}
+				});
+		JavaPairRDD<String,Integer> ddd2 = ddd.reduceByKey(((x, y) -> x + y));
+		Map<String, Integer> map = ddd2.collectAsMap();
+		return map;		
+				
+//		Map<String, Long> map = new HashMap<String, Long>();
+//		List<Integer> indexList = new ArrayList<Integer>(); 
+//		for(String field : selectFields)
+//		{
+//			int tmp = allField.indexOf(field);
+//			indexList.add(tmp);
+//		}
+//		List<String> list = dataRDD.collect();
+//		for(String s : list)
+//		{
+//			int index = 0;
+//			String resk = "";
+//			String[] str = s.split(",");
+//			Map<String, String> filterMap = new HashMap<String, String>();
+//			for(int i : indexList)
+//			{
+//				String k = selectFields.get(index++);
+//				String v = str[i];
+//				resk += k+":"+v+" ";
+//				filterMap.put(k, v);
+//			}
+//			map.put(resk, filterMethod(filterMap, allField, dataRDD, false).count());
+//		}
+//		return map;
 	}
 	public static Set<String> sampleMethod(List<String> selectFields, List<String> allField, JavaRDD<String> dataRDD)
 	{
@@ -189,43 +225,7 @@ public class Operator
 			resSet.add(filterMethod(filterMap, allField, dataRDD, false).first());
 		}
 		return resSet;
-		
-		
-		
-//		int index = -1;
-//		for(int i=0; i<allField.length; i++)
-//		{
-//			if(allField[i].equals(selectField))
-//			{
-//				index = i;
-//			}
-//		}
-//		if(index == -1)
-//		{
-//			return null;
-//		}
-//		else
-//		{
-//			Set<String> set = new HashSet<String>();
-//			List<String> list = dataRDD.collect();
-//			List<String> list2 = new ArrayList<String>();
-//			for(String tmp : list)
-//			{
-//				String[] str = tmp.split(",");
-//				set.add(str[index]);
-//			}
-//			for(String s: set)
-//			{
-//				String[] ss = s.split(",");
-//				JavaRDD<String> filterResult = filterMethod(ss, dataRDD, false);
-//				list2.add(filterResult.first());
-//			}
-//			return list2;
-//		}
 	}
-	
-	
-	
 	public static JavaSparkContext sparkConf()
 	{
 		SparkConf conf = new SparkConf();
