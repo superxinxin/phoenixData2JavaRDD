@@ -46,6 +46,15 @@ public class Operator
         allField.add("E");
         allField.add("F");
         allField.add("G");
+        //全部数据
+        dataRDD.foreach(new VoidFunction<String>() {
+
+			@Override
+			public void call(String t) throws Exception
+			{
+				System.out.println("全部数据："+t);
+			}
+        });
         //过滤算子
         JavaRDD<String> filterResult = filterMethod(filterFieldsAndValues, allField, dataRDD, false);
         filterResult.foreach(new VoidFunction<String>()
