@@ -16,15 +16,15 @@
     sampleMethod方法实现指定字段含有相同字段值的记录，只抽取其中一条。
 ## 实现过程及截图
 1）全部数据
-![1](https://github.com/superxinxin/phoenixData2JavaRDD/blob/master/Images/1.PNG)
+![图1](https://github.com/superxinxin/phoenixData2JavaRDD/blob/master/Images/1.PNG)
 2）设置过滤字段及字段值，设置统计字段和抽样字段
-![2](https://github.com/superxinxin/phoenixData2JavaRDD/blob/master/Images/5.PNG)
+![图2](https://github.com/superxinxin/phoenixData2JavaRDD/blob/master/Images/5.PNG)
 3）过滤算子结果。提取出C是c3，G是g7的记录
-![3](https://github.com/superxinxin/phoenixData2JavaRDD/blob/master/Images/2.PNG)
+![图3](https://github.com/superxinxin/phoenixData2JavaRDD/blob/master/Images/2.PNG)
 4）统计算子结果。根据字段B和D的字段值进行统计
-![4](https://github.com/superxinxin/phoenixData2JavaRDD/blob/master/Images/3.PNG)
+![图4](https://github.com/superxinxin/phoenixData2JavaRDD/blob/master/Images/3.PNG)
 5）抽样算子结果。根据字段B和D的字段值进行统计
-![5](https://github.com/superxinxin/phoenixData2JavaRDD/blob/master/Images/4.PNG)
+![图5](https://github.com/superxinxin/phoenixData2JavaRDD/blob/master/Images/4.PNG)
 # JavaRDDMethod.java
 * 数据读入：1）从txt文件读成JavaRDD；2）从List<String>读成JavaRDD。
 * RDD打印：1）打印RDD内容；2）打印WordCountRDD统计内容；
