@@ -13,7 +13,7 @@
 ## 抽样算子
     1）算子简介：在指定字段含有相同字段值的记录中抽取一条
     2）算子实现：selectFields是ArrayList类型，存放指定字段，
-    sampleMethod方法实现指定字段含有相同字段值的记录，只抽取其中一条。
+       sampleMethod方法实现指定字段含有相同字段值的记录，只抽取其中一条。
 ## 实现过程及截图
 * 1）全部数据![图1](https://github.com/superxinxin/phoenixData2JavaRDD/blob/master/Images/1.PNG)
 * 2）设置过滤字段及字段值，设置统计字段和抽样字段![图2](https://github.com/superxinxin/phoenixData2JavaRDD/blob/master/Images/5.PNG)
